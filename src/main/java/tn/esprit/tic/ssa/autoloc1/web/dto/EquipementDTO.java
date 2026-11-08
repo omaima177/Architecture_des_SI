@@ -1,18 +1,12 @@
 package tn.esprit.tic.ssa.autoloc1.web.dto;
 
-import tn.esprit.tic.ssa.autoloc1.domain.Equipement;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record EquipementDTO(
-        Long idEquipement,
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY) Long idEquipement,
+        @NotBlank(message = "Le libellé est obligatoire")
+        @Size(max = 50, message = "Le libellé ne doit pas dépasser 50 caractères")
         String libelle) {
-
-    public static EquipementDTO from(Equipement e) {
-        return new EquipementDTO(e.getIdEquipement(), e.getLibelle());
-    }
-
-    public Equipement toEntity() {
-        Equipement e = new Equipement();
-        e.setLibelle(libelle);
-        return e;
-    }
 }

@@ -1,10 +1,17 @@
 package tn.esprit.tic.ssa.autoloc1.web.controller;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import tn.esprit.tic.ssa.autoloc1.domain.Employe;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.tic.ssa.autoloc1.service.IEmployeService;
 import tn.esprit.tic.ssa.autoloc1.web.dto.EmployeDTO;
 
@@ -18,24 +25,23 @@ public class EmployeController {
     private final IEmployeService employeService;
 
     @PostMapping
-    public ResponseEntity<EmployeDTO> addEmploye(@RequestBody EmployeDTO dto) {
-        Employe saved = employeService.addEmploye(dto.toEntity());
-        return ResponseEntity.status(HttpStatus.CREATED).body(EmployeDTO.from(saved));
+    public ResponseEntity<EmployeDTO> addEmploye(@Valid @RequestBody EmployeDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(employeService.addEmploye(dto));
     }
 
     @GetMapping
     public List<EmployeDTO> getAllEmployes() {
-        return employeService.getAllEmployes().stream().map(EmployeDTO::from).toList();
+        return employeService.getAllEmployes();
     }
 
     @GetMapping("/{id}")
     public EmployeDTO getEmployeById(@PathVariable("id") Long id) {
-        return EmployeDTO.from(employeService.getEmployeById(id));
+        return employeService.getEmployeById(id);
     }
 
     @PutMapping("/{id}")
-    public EmployeDTO updateEmploye(@PathVariable("id") Long id, @RequestBody EmployeDTO dto) {
-        return EmployeDTO.from(employeService.updateEmploye(id, dto.toEntity()));
+    public EmployeDTO updateEmploye(@PathVariable("id") Long id, @Valid @RequestBody EmployeDTO dto) {
+        return employeService.updateEmploye(id, dto);
     }
 
     @DeleteMapping("/{id}")

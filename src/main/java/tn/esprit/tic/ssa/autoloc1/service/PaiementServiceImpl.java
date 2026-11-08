@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.tic.ssa.autoloc1.domain.Contrat;
 import tn.esprit.tic.ssa.autoloc1.domain.Paiement;
+import tn.esprit.tic.ssa.autoloc1.mapper.PaiementMapper;
 import tn.esprit.tic.ssa.autoloc1.repository.ContratRepository;
 import tn.esprit.tic.ssa.autoloc1.repository.PaiementRepository;
+import tn.esprit.tic.ssa.autoloc1.web.dto.PaiementDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,71 +20,55 @@ public class PaiementServiceImpl implements IPaiementService {
 
     private final PaiementRepository paiementRepository;
     private final ContratRepository contratRepository;
+    private final PaiementMapper paiementMapper;
 
     @Override
     @Transactional
-    public Paiement addPaiement(Paiement paiement) {
-        checkMontant(paiement);
-        if (paiement.getModePaiement() == null) {
-            throw new IllegalArgumentException("modePaiement est obligatoire");
-        }
+    public PaiementDTO addPaiement(PaiementDTO dto) {
+        Paiement paiement = paiementMapper.toEntity(dto);
         if (paiement.getDatePaiement() == null) {
             paiement.setDatePaiement(LocalDate.now());
         }
-        paiement.setContrat(findContrat(paiement.getContrat()));
-        return paiementRepository.save(paiement);
+        paiement.setContrat(findContrat(dto.contratId()));
+        return paiementMapper.toDto(paiementRepository.save(paiement));
     }
 
     @Override
     @Transactional
-    public Paiement updatePaiement(Long id, Paiement paiement) {
-        Paiement existing = getPaiementById(id);
-        checkMontant(paiement);
-        existing.setMontant(paiement.getMontant());
-        if (paiement.getDatePaiement() != null) {
-            existing.setDatePaiement(paiement.getDatePaiement());
-        }
-        if (paiement.getModePaiement() != null) {
-            existing.setModePaiement(paiement.getModePaiement());
-        }
-        if (paiement.getContrat() != null) {
-            existing.setContrat(findContrat(paiement.getContrat()));
-        }
-        return paiementRepository.save(existing);
+    public PaiementDTO updatePaiement(Long id, PaiementDTO dto) {
+        Paiement existing = findPaiement(id);
+        paiementMapper.updateEntity(dto, existing);
+        existing.setContrat(findContrat(dto.contratId()));
+        return paiementMapper.toDto(paiementRepository.save(existing));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Paiement getPaiementById(Long id) {
-        return paiementRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Paiement introuvable avec l'id : " + id));
+    public PaiementDTO getPaiementById(Long id) {
+        return paiementMapper.toDto(findPaiement(id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Paiement> getAllPaiements() {
-        return paiementRepository.findAll();
+    public List<PaiementDTO> getAllPaiements() {
+        return paiementRepository.findAll().stream().map(paiementMapper::toDto).toList();
     }
 
     @Override
     @Transactional
     public void deletePaiement(Long id) {
-        paiementRepository.delete(getPaiementById(id));
+        paiementRepository.delete(findPaiement(id));
     }
 
-    private void checkMontant(Paiement p) {
-        if (p.getMontant() == null || p.getMontant().signum() <= 0) {
-            throw new IllegalArgumentException("montant doit être strictement positif");
-        }
-    }
-
-    private Contrat findContrat(Contrat ref) {
-        if (ref == null || ref.getIdContrat() == null) {
-            throw new IllegalArgumentException("contratId est obligatoire");
-        }
-        return contratRepository.findById(ref.getIdContrat())
+    private Paiement findPaiement(Long id) {
+        return paiementRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Contrat introuvable avec l'id : " + ref.getIdContrat()));
+                        "Paiement introuvable avec l'id : " + id));
+    }
+
+    private Contrat findContrat(Long id) {
+        return contratRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Contrat introuvable avec l'id : " + id));
     }
 }

@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.tic.ssa.autoloc1.domain.Contrat;
 import tn.esprit.tic.ssa.autoloc1.domain.Reservation;
+import tn.esprit.tic.ssa.autoloc1.mapper.ContratMapper;
 import tn.esprit.tic.ssa.autoloc1.repository.ContratRepository;
 import tn.esprit.tic.ssa.autoloc1.repository.ReservationRepository;
+import tn.esprit.tic.ssa.autoloc1.web.dto.ContratDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,67 +20,57 @@ public class ContratServiceImpl implements IContratService {
 
     private final ContratRepository contratRepository;
     private final ReservationRepository reservationRepository;
+    private final ContratMapper contratMapper;
 
     @Override
     @Transactional
-    public Contrat addContrat(Contrat contrat) {
-        if (contrat.getMontantTotal() == null) {
-            throw new IllegalArgumentException("montantTotal est obligatoire");
-        }
-        Reservation reservation = findReservation(contrat.getReservation());
+    public ContratDTO addContrat(ContratDTO dto) {
+        Reservation reservation = reservationRepository.findById(dto.reservationId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Réservation introuvable avec l'id : " + dto.reservationId()));
         if (contratRepository.existsByReservation_IdReservation(reservation.getIdReservation())) {
             throw new IllegalArgumentException(
                     "Cette réservation possède déjà un contrat : " + reservation.getIdReservation());
         }
+        Contrat contrat = contratMapper.toEntity(dto);
         contrat.setReservation(reservation);
         if (contrat.getDateSignature() == null) {
             contrat.setDateSignature(LocalDate.now());
         }
-        return contratRepository.save(contrat);
+        return contratMapper.toDto(contratRepository.save(contrat));
     }
 
     @Override
     @Transactional
-    public Contrat updateContrat(Long id, Contrat contrat) {
-        Contrat existing = getContratById(id);
+    public ContratDTO updateContrat(Long id, ContratDTO dto) {
+        Contrat existing = findContrat(id);
         // La réservation d'un contrat n'est pas modifiable (relation @OneToOne unique)
-        if (contrat.getDateSignature() != null) {
-            existing.setDateSignature(contrat.getDateSignature());
-        }
-        if (contrat.getMontantTotal() != null) {
-            existing.setMontantTotal(contrat.getMontantTotal());
-        }
-        existing.setValide(contrat.isValide());
-        return contratRepository.save(existing);
+        contratMapper.updateEntity(dto, existing);
+        return contratMapper.toDto(contratRepository.save(existing));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Contrat getContratById(Long id) {
-        return contratRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Contrat introuvable avec l'id : " + id));
+    public ContratDTO getContratById(Long id) {
+        return contratMapper.toDto(findContrat(id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Contrat> getAllContrats() {
-        return contratRepository.findAll();
+    public List<ContratDTO> getAllContrats() {
+        return contratRepository.findAll().stream().map(contratMapper::toDto).toList();
     }
 
     @Override
     @Transactional
     public void deleteContrat(Long id) {
         // cascade = ALL : les paiements du contrat sont supprimés avec lui
-        contratRepository.delete(getContratById(id));
+        contratRepository.delete(findContrat(id));
     }
 
-    private Reservation findReservation(Reservation ref) {
-        if (ref == null || ref.getIdReservation() == null) {
-            throw new IllegalArgumentException("reservationId est obligatoire");
-        }
-        return reservationRepository.findById(ref.getIdReservation())
+    private Contrat findContrat(Long id) {
+        return contratRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Réservation introuvable avec l'id : " + ref.getIdReservation()));
+                        "Contrat introuvable avec l'id : " + id));
     }
 }

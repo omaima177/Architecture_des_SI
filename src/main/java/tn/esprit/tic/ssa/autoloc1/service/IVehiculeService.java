@@ -1,15 +1,16 @@
+// IVehiculeService.java
 package tn.esprit.tic.ssa.autoloc1.service;
 
 import tn.esprit.tic.ssa.autoloc1.domain.StatutVehicule;
-import tn.esprit.tic.ssa.autoloc1.domain.Vehicule;
+import tn.esprit.tic.ssa.autoloc1.web.dto.VehiculeDTO;
 
 import java.util.List;
 
 public interface IVehiculeService {
-    Vehicule addVehicule(Vehicule vehicule);
-    Vehicule updateVehicule(Long id, Vehicule vehicule);
-    Vehicule getVehiculeById(Long id);
-    List<Vehicule> getAllVehicules();
-    List<Vehicule> getVehiculesByStatut(StatutVehicule statut);
+    VehiculeDTO addVehicule(VehiculeDTO dto);
+    VehiculeDTO updateVehicule(Long id, VehiculeDTO dto);
+    VehiculeDTO getVehiculeById(Long id);
+    List<VehiculeDTO> getAllVehicules();
+    List<VehiculeDTO> getVehiculesByStatut(StatutVehicule statut);
     void deleteVehicule(Long id);
 }

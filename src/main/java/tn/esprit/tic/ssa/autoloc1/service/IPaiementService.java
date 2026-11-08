@@ -1,13 +1,14 @@
+// IPaiementService.java
 package tn.esprit.tic.ssa.autoloc1.service;
 
-import tn.esprit.tic.ssa.autoloc1.domain.Paiement;
+import tn.esprit.tic.ssa.autoloc1.web.dto.PaiementDTO;
 
 import java.util.List;
 
 public interface IPaiementService {
-    Paiement addPaiement(Paiement paiement);
-    Paiement updatePaiement(Long id, Paiement paiement);
-    Paiement getPaiementById(Long id);
-    List<Paiement> getAllPaiements();
+    PaiementDTO addPaiement(PaiementDTO dto);
+    PaiementDTO updatePaiement(Long id, PaiementDTO dto);
+    PaiementDTO getPaiementById(Long id);
+    List<PaiementDTO> getAllPaiements();
     void deletePaiement(Long id);
 }

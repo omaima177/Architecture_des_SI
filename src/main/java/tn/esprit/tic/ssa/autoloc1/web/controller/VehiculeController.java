@@ -4,12 +4,19 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.tic.ssa.autoloc1.domain.StatutVehicule;
-import tn.esprit.tic.ssa.autoloc1.domain.Vehicule;
 import tn.esprit.tic.ssa.autoloc1.service.IVehiculeService;
 import tn.esprit.tic.ssa.autoloc1.web.dto.VehiculeDTO;
 
@@ -27,20 +34,19 @@ public class VehiculeController {
             description = "Crée un véhicule rattaché à une agence existante (agenceId obligatoire). L'immatriculation doit être unique.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Véhicule créé"),
-            @ApiResponse(responseCode = "400", description = "Immatriculation déjà utilisée ou agenceId manquant"),
+            @ApiResponse(responseCode = "400", description = "Données invalides ou immatriculation déjà utilisée"),
             @ApiResponse(responseCode = "404", description = "Agence ou équipement introuvable")
     })
     @PostMapping
-    public ResponseEntity<VehiculeDTO> addVehicule(@RequestBody VehiculeDTO dto) {
-        Vehicule saved = vehiculeService.addVehicule(dto.toEntity());
-        return ResponseEntity.status(HttpStatus.CREATED).body(VehiculeDTO.from(saved));
+    public ResponseEntity<VehiculeDTO> addVehicule(@Valid @RequestBody VehiculeDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(vehiculeService.addVehicule(dto));
     }
 
     @Operation(summary = "Lister les véhicules", description = "Retourne la liste de tous les véhicules.")
     @ApiResponse(responseCode = "200", description = "Liste retournée (peut être vide)")
     @GetMapping
     public List<VehiculeDTO> getAllVehicules() {
-        return vehiculeService.getAllVehicules().stream().map(VehiculeDTO::from).toList();
+        return vehiculeService.getAllVehicules();
     }
 
     @Operation(summary = "Consulter un véhicule", description = "Retourne un véhicule à partir de son identifiant.")
@@ -50,7 +56,7 @@ public class VehiculeController {
     })
     @GetMapping("/{id}")
     public VehiculeDTO getVehiculeById(@PathVariable("id") Long id) {
-        return VehiculeDTO.from(vehiculeService.getVehiculeById(id));
+        return vehiculeService.getVehiculeById(id);
     }
 
     @Operation(summary = "Filtrer les véhicules par statut",
@@ -58,7 +64,7 @@ public class VehiculeController {
     @ApiResponse(responseCode = "200", description = "Liste filtrée retournée")
     @GetMapping("/statut/{statut}")
     public List<VehiculeDTO> getVehiculesByStatut(@PathVariable("statut") StatutVehicule statut) {
-        return vehiculeService.getVehiculesByStatut(statut).stream().map(VehiculeDTO::from).toList();
+        return vehiculeService.getVehiculesByStatut(statut);
     }
 
     @Operation(summary = "Modifier un véhicule", description = "Remplace les informations d'un véhicule existant.")
@@ -68,8 +74,8 @@ public class VehiculeController {
             @ApiResponse(responseCode = "404", description = "Véhicule, agence ou équipement introuvable")
     })
     @PutMapping("/{id}")
-    public VehiculeDTO updateVehicule(@PathVariable("id") Long id, @RequestBody VehiculeDTO dto) {
-        return VehiculeDTO.from(vehiculeService.updateVehicule(id, dto.toEntity()));
+    public VehiculeDTO updateVehicule(@PathVariable("id") Long id, @Valid @RequestBody VehiculeDTO dto) {
+        return vehiculeService.updateVehicule(id, dto);
     }
 
     @Operation(summary = "Supprimer un véhicule", description = "Supprime un véhicule sans réservation ni maintenance.")

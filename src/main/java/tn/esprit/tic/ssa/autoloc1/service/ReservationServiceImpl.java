@@ -8,10 +8,13 @@ import tn.esprit.tic.ssa.autoloc1.domain.Client;
 import tn.esprit.tic.ssa.autoloc1.domain.Reservation;
 import tn.esprit.tic.ssa.autoloc1.domain.StatutReservation;
 import tn.esprit.tic.ssa.autoloc1.domain.Vehicule;
+import tn.esprit.tic.ssa.autoloc1.mapper.ReservationMapper;
 import tn.esprit.tic.ssa.autoloc1.repository.ClientRepository;
 import tn.esprit.tic.ssa.autoloc1.repository.ReservationRepository;
 import tn.esprit.tic.ssa.autoloc1.repository.VehiculeRepository;
+import tn.esprit.tic.ssa.autoloc1.web.dto.ReservationDTO;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -21,56 +24,48 @@ public class ReservationServiceImpl implements IReservationService {
     private final ReservationRepository reservationRepository;
     private final ClientRepository clientRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final ReservationMapper reservationMapper;
 
     @Override
     @Transactional
-    public Reservation addReservation(Reservation reservation) {
-        checkDates(reservation);
+    public ReservationDTO addReservation(ReservationDTO dto) {
+        checkDates(dto.dateDebut(), dto.dateFin());
+        Reservation reservation = reservationMapper.toEntity(dto);
         if (reservation.getStatut() == null) {
             reservation.setStatut(StatutReservation.EN_ATTENTE);
         }
-        reservation.setClient(findClient(reservation.getClient()));
-        reservation.setVehicule(findVehicule(reservation.getVehicule()));
-        return reservationRepository.save(reservation);
+        reservation.setClient(findClient(dto.clientId()));
+        reservation.setVehicule(findVehicule(dto.vehiculeId()));
+        return reservationMapper.toDto(reservationRepository.save(reservation));
     }
 
     @Override
     @Transactional
-    public Reservation updateReservation(Long id, Reservation reservation) {
-        Reservation existing = getReservationById(id);
-        checkDates(reservation);
-        existing.setDateDebut(reservation.getDateDebut());
-        existing.setDateFin(reservation.getDateFin());
-        if (reservation.getStatut() != null) {
-            existing.setStatut(reservation.getStatut());
-        }
-        if (reservation.getClient() != null) {
-            existing.setClient(findClient(reservation.getClient()));
-        }
-        if (reservation.getVehicule() != null) {
-            existing.setVehicule(findVehicule(reservation.getVehicule()));
-        }
-        return reservationRepository.save(existing);
+    public ReservationDTO updateReservation(Long id, ReservationDTO dto) {
+        Reservation existing = findReservation(id);
+        checkDates(dto.dateDebut(), dto.dateFin());
+        reservationMapper.updateEntity(dto, existing);
+        existing.setClient(findClient(dto.clientId()));
+        existing.setVehicule(findVehicule(dto.vehiculeId()));
+        return reservationMapper.toDto(reservationRepository.save(existing));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Reservation getReservationById(Long id) {
-        return reservationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Réservation introuvable avec l'id : " + id));
+    public ReservationDTO getReservationById(Long id) {
+        return reservationMapper.toDto(findReservation(id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Reservation> getAllReservations() {
-        return reservationRepository.findAll();
+    public List<ReservationDTO> getAllReservations() {
+        return reservationRepository.findAll().stream().map(reservationMapper::toDto).toList();
     }
 
     @Override
     @Transactional
     public void deleteReservation(Long id) {
-        Reservation existing = getReservationById(id);
+        Reservation existing = findReservation(id);
         if (existing.getContrat() != null) {
             throw new IllegalStateException(
                     "Impossible de supprimer cette réservation : un contrat y est rattaché.");
@@ -78,30 +73,27 @@ public class ReservationServiceImpl implements IReservationService {
         reservationRepository.delete(existing);
     }
 
-    private void checkDates(Reservation r) {
-        if (r.getDateDebut() == null || r.getDateFin() == null) {
-            throw new IllegalArgumentException("dateDebut et dateFin sont obligatoires");
-        }
-        if (r.getDateFin().isBefore(r.getDateDebut())) {
+    private void checkDates(LocalDate debut, LocalDate fin) {
+        if (fin.isBefore(debut)) {
             throw new IllegalArgumentException("dateFin ne peut pas précéder dateDebut");
         }
     }
 
-    private Client findClient(Client ref) {
-        if (ref == null || ref.getIdClient() == null) {
-            throw new IllegalArgumentException("clientId est obligatoire");
-        }
-        return clientRepository.findById(ref.getIdClient())
+    private Reservation findReservation(Long id) {
+        return reservationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Client introuvable avec l'id : " + ref.getIdClient()));
+                        "Réservation introuvable avec l'id : " + id));
     }
 
-    private Vehicule findVehicule(Vehicule ref) {
-        if (ref == null || ref.getIdVehicule() == null) {
-            throw new IllegalArgumentException("vehiculeId est obligatoire");
-        }
-        return vehiculeRepository.findById(ref.getIdVehicule())
+    private Client findClient(Long id) {
+        return clientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Véhicule introuvable avec l'id : " + ref.getIdVehicule()));
+                        "Client introuvable avec l'id : " + id));
+    }
+
+    private Vehicule findVehicule(Long id) {
+        return vehiculeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Véhicule introuvable avec l'id : " + id));
     }
 }

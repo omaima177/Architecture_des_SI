@@ -1,34 +1,23 @@
 package tn.esprit.tic.ssa.autoloc1.web.dto;
 
-import tn.esprit.tic.ssa.autoloc1.domain.Contrat;
-import tn.esprit.tic.ssa.autoloc1.domain.Reservation;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record ContratDTO(
-        Long idContrat,
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY) Long idContrat,
         LocalDate dateSignature,
+        @NotNull(message = "Le montant total est obligatoire")
+        @DecimalMin(value = "0.0", inclusive = false, message = "Le montant total doit être strictement positif")
+        @Digits(integer = 8, fraction = 2, message = "Le montant total accepte 8 chiffres entiers et 2 décimales au maximum")
         BigDecimal montantTotal,
         boolean valide,
+        @NotNull(message = "reservationId est obligatoire")
+        @Positive(message = "reservationId doit être un identifiant positif")
         Long reservationId) {
-
-    public static ContratDTO from(Contrat c) {
-        Long reservationId = c.getReservation() != null ? c.getReservation().getIdReservation() : null;
-        return new ContratDTO(c.getIdContrat(), c.getDateSignature(), c.getMontantTotal(),
-                c.isValide(), reservationId);
-    }
-
-    public Contrat toEntity() {
-        Contrat c = new Contrat();
-        c.setDateSignature(dateSignature);
-        c.setMontantTotal(montantTotal);
-        c.setValide(valide);
-        if (reservationId != null) {
-            Reservation r = new Reservation();
-            r.setIdReservation(reservationId);
-            c.setReservation(r);
-        }
-        return c;
-    }
 }
